@@ -2,7 +2,12 @@ const db = require("../db/database");
 
 const productsService = {
     getAllProducts() {
-        return db.prepare(`SELECT * FROM products`).all();
+        return db.prepare(`
+            SELECT products.*, categories.name AS category
+            FROM products
+            JOIN categories
+            ON products.category_id = categories.id
+        `).all();
     },
 
     getProductById(id) {
@@ -18,7 +23,7 @@ const productsService = {
     
     getProductsByCategory(category) {
         return db.prepare(`
-            SELECT products.*
+            SELECT products.*, categories.name AS category
             FROM products
             JOIN categories
             ON products.category_id = categories.id
