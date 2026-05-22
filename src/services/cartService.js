@@ -1,4 +1,4 @@
-const products = require("../data/products.json");
+const productsService = require("./productsService");
 
 const cartService = {
     getCart(session) {
@@ -10,6 +10,12 @@ const cartService = {
     },
 
     addProduct(session, productId) {
+        const realProduct = productsService.getProductById(productId);
+
+        if (!realProduct) {
+            throw new Error("Producto inexistente");
+        }
+
         const cart = this.getCart(session);
 
         const existingProduct = cart.find(item => item.productId === productId);
@@ -67,19 +73,24 @@ const cartService = {
     },
 
     getDetailedCart(session) {
+        
         const cart = this.getCart(session);
 
         return cart.map(cartItem => {
-            const realProduct = products.find(
-                product => product.id === cartItem.productId
+            const realProduct = productsService.getProductById(
+                cartItem.productId
             );
+
+            if (!realProduct) {
+                return null;
+            }
 
             return {
                 ...realProduct,
                 quantity: cartItem.quantity,
                 subtotal: realProduct.points * cartItem.quantity
             };
-        });
+        }).filter(Boolean); //Eliminar valores null del Array.
     },
 
     calculateTotal(session) {
