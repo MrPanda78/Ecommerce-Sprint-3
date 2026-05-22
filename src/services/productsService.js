@@ -1,49 +1,56 @@
-const products = require("../data/products.json");
+const db = require("../db/database");
 
 const productsService = {
     getAllProducts() {
-        return products;
+        return db.prepare(`SELECT * FROM products`).all();
     },
 
     getProductById(id) {
-        return products.find(product => product.id === id);
+        return db.prepare(`
+            SELECT products.*,
+                categories.name AS category
+            FROM products
+            LEFT JOIN categories
+                ON products.category_id = categories.id
+            WHERE products.id = ?
+        `).get(id);
     },
-
+    
     getProductsByCategory(category) {
-        return products.filter(product => product.category === category);
+        return db.prepare(`
+            SELECT products.*
+            FROM products
+            JOIN categories
+            ON products.category_id = categories.id
+            WHERE categories.name = ?
+        `).all(category);
     },
 
     getRandomProducts(limit) {
-        const shuffledProducts = [...products];
-
-        for (let i = shuffledProducts.length - 1; i > 0; i--) {
-
-            const j = Math.floor(Math.random() * (i + 1));
-
-            [shuffledProducts[i], shuffledProducts[j]] = [
-                shuffledProducts[j],
-                shuffledProducts[i]
-            ];
-        }
-        return shuffledProducts.slice(0, limit);
+        return db.prepare(`
+            SELECT products.*,
+                categories.name AS category,
+                (SELECT COUNT(*) FROM products) AS total_products
+            FROM products
+            LEFT JOIN categories
+                ON products.category_id = categories.id
+            ORDER BY RANDOM()
+            LIMIT ?
+        `).all(limit);
     },
 
     getRelatedProducts(product, limit) {
-        const filteredProducts = products.filter(p =>
-            p.category === product.category &&
-            p.id !== product.id
-        );
-
-        for (let i = filteredProducts.length - 1; i > 0; i--) {
-
-            const j = Math.floor(Math.random() * (i + 1));
-
-            [filteredProducts[i], filteredProducts[j]] = [
-                filteredProducts[j],
-                filteredProducts[i]
-            ];
-        }
-        return filteredProducts.slice(0, limit);
+        return db.prepare(`
+            SELECT products.*,
+                categories.name AS category
+            FROM products
+            LEFT JOIN categories
+                ON products.category_id = categories.id
+            WHERE products.category_id = ?
+            AND products.id != ?
+            ORDER BY RANDOM()
+            LIMIT ?
+        `).all(product.category_id, product.id, limit);
     },
 
     formatProducts(productsArray) {
@@ -71,8 +78,15 @@ const productsService = {
         return sortedProducts;
     },
 
-    searchByName(productsArray, buscar){
-        return productsArray.filter(product => product.name.toLowerCase().includes(buscar.toLowerCase()));
+    searchByName(buscar){
+        return db.prepare(`
+            SELECT products.*,
+                categories.name AS category
+            FROM products
+            LEFT JOIN categories
+                ON products.category_id = categories.id
+            WHERE LOWER(products.name) LIKE '%' || LOWER(?) || '%';
+        `).all(buscar);
     }
 };
 

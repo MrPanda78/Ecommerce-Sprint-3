@@ -5,8 +5,7 @@ const searchController = {
         try {
             const sort = req.query.query;
 
-            let products = productsService.getAllProducts();
-            products = productsService.searchByName(products, sort);
+            const products = productsService.searchByName(sort);
 
             const cart = req.session.cart || [];
             const totalItems = cart.reduce((acc, item) => acc + item.quantity, 0);
